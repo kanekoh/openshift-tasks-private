@@ -169,6 +169,7 @@ pipeline {
                error 'Integration Create Test Failed!'
            }
 
+          sleep 5
           echo "Retrieving tasks"
           // TBD: Implement check to retrieve the task
            status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X GET http://tasks.${prefix}-tasks-dev.svc.cluster.local:8080/ws/tasks/1").trim()
@@ -177,6 +178,7 @@ pipeline {
                error 'Integration Create Test Failed!'
            }
 
+          sleep 5
           echo "Deleting tasks"
           // TBD: Implement check to delete the task
            status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X DELETE http://tasks.${prefix}-tasks-dev.svc.cluster.local:8080/ws/tasks/1").trim()
