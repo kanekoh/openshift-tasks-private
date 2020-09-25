@@ -95,7 +95,7 @@ pipeline {
         echo "Building OpenShift container image tasks:${devTag}"
         script {
             openshift.withCluster(){
-                openshift.withProject("${prefix}-tasks-dev"){
+                openshift.withProject("${devProject}"){
     
                     // TBD: Start binary build in OpenShift using the file we just published.
                     // Either use the file from your
@@ -115,7 +115,7 @@ pipeline {
                     }
                     
                     // TBD: Tag the image using the devTag.
-                    openshift.tag("${prefix}-tasks-dev/tasks:latest", "${prefix}-tasks-dev/tasks:${devTag}")
+                    openshift.tag("${devProject}/tasks:latest", "${devProject}/tasks:${devTag}")
                 }
             }
         }
@@ -128,7 +128,7 @@ pipeline {
         echo "Deploy container image to Development Project"
         script {
             openshift.withCluster(){
-                openshift.withProject("${prefix}-tasks-dev"){
+                openshift.withProject("${devProject}"){
                     // TBD: Deploy the image
                     // 1. Update the image on the dev deployment config
                     // 2. Recreate the config maps with the potentially changed properties files
@@ -138,7 +138,7 @@ pipeline {
                     //    comparing the requested replicas
                     //    (rc.spec.replicas) with the running replicas
                     //    (rc.status.readyReplicas)
-                    openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/user27-tasks-dev/tasks:${devTag}")
+                    openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag}")
                     openshift.selector("cm","tasks-config").delete()
                     openshift.create("cm", "tasks-config",
                         '--from-file="./configuration/application-users.properties"',
@@ -165,7 +165,7 @@ pipeline {
           echo "Creating task"
           // The next bit works - but only after the application
           // has been deployed successfully
-           status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X POST http://tasks.${prefix}-tasks-dev.svc.cluster.local:8080/ws/tasks/integration_test_1").trim()
+           status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X POST http://tasks.${devProject}.svc.cluster.local:8080/ws/tasks/integration_test_1").trim()
            echo "Status: " + status
            if (status != "201") {
                error 'Integration Create Test Failed!'
@@ -174,7 +174,7 @@ pipeline {
           sleep 5
           echo "Retrieving tasks"
           // TBD: Implement check to retrieve the task
-           status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X GET http://tasks.${prefix}-tasks-dev.svc.cluster.local:8080/ws/tasks/1").trim()
+           status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X GET http://tasks.${devProject}.svc.cluster.local:8080/ws/tasks/1").trim()
            echo "Status: " + status
            if (status != "200") {
                error 'Integration Create Test Failed!'
@@ -183,7 +183,7 @@ pipeline {
           sleep 5
           echo "Deleting tasks"
           // TBD: Implement check to delete the task
-           status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X DELETE http://tasks.${prefix}-tasks-dev.svc.cluster.local:8080/ws/tasks/1").trim()
+           status = sh(returnStdout: true, script: "curl -sw '%{response_code}' -o /dev/null -u 'redhat:redhat1' -H 'Content-Length: 0' -X DELETE http://tasks.${devProject}.svc.cluster.local:8080/ws/tasks/1").trim()
            echo "Status: " + status
            if (status != "204") {
                error 'Integration Create Test Failed!'
@@ -202,14 +202,14 @@ pipeline {
                 usernamePassword(credentialsId: 'nexus', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME'),
                 usernamePassword(credentialsId: 'openshift', passwordVariable: 'OCP_PASSWORD', usernameVariable: 'OCP_USERNAME'),
             ]){
-            sh "skopeo copy --src-creds ${OCP_USERNAME}:${OCP_PASSWORD} --src-tls-verify=false --dest-creds ${NEXUS_USERNAME}:${NEXUS_PASSWORD} --dest-tls-verify=false docker://image-registry.openshift-image-registry.svc:5000/${prefix}-tasks-dev/tasks:${devTag} docker://nexus-registry.${prefix}-nexus.svc.cluster.local:5000/tasks:${prodTag}"
+            sh "skopeo copy --src-creds ${OCP_USERNAME}:${OCP_PASSWORD} --src-tls-verify=false --dest-creds ${NEXUS_USERNAME}:${NEXUS_PASSWORD} --dest-tls-verify=false docker://image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag} docker://nexus-registry.${prefix}-nexus.svc.cluster.local:5000/tasks:${prodTag}"
         }
 
         // TBD: Tag the built image with the production tag.
         script {
             openshift.withCluster(){
-                openshift.withProject("${prefix}-tasks-dev"){
-                    openshift.tag("${prefix}-tasks-dev/tasks:${devTag}","${prefix}-tasks-dev/tasks:${prodTag}")
+                openshift.withProject("${devProject}"){
+                    openshift.tag("${devProject}/tasks:${devTag}","${devProject}/tasks:${prodTag}")
                 }
             }
         }
@@ -231,14 +231,14 @@ pipeline {
         //         See above for example code
         script {
             openshift.withCluster(){
-                openshift.withProject("${prefix}-tasks-prod"){
+                openshift.withProject("${prodProject}"){
                     activeApp = openshift.selector("route", "tasks").object().spec.to.name
                     if( activeApp == "${destApp}"){
                         destApp = "tasks-blue"
                     }
                     
                     echo "Current Active service is ${activeApp}"
-                    openshift.set("image", "dc/${destApp}", "${destApp}=image-registry.openshift-image-registry.svc:5000/user27-tasks-dev/tasks:${prodTag}")
+                    openshift.set("image", "dc/${destApp}", "${destApp}=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${prodTag}")
                     openshift.selector("cm","${destApp}-config").delete()
                     openshift.create("cm", "${destApp}-config",
                         '--from-file="./configuration/application-users.properties"',
@@ -265,7 +265,7 @@ pipeline {
         // TBD: After approval execute the switch
         script {
             openshift.withCluster(){
-                openshift.withProject("${prefix}-tasks-prod"){
+                openshift.withProject("${prodProject}"){
                     openshift.set("route-backends", "tasks", "${destApp}=100", "${activeApp}=0")
                 }
             }
