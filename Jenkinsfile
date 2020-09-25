@@ -106,13 +106,13 @@ pipeline {
                     // "--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war"
                     def bc = openshift.selector("bc", "tasks")
                     
-                    def buildSelector = bc.startBuild("--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war")
+                    def buildSelector = bc.startBuild("--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war", "--wait", "--follow")
                     
-                    timeout(10) { // wiat for 10 minutes
-                        buildSelector.untilEach(1){
-                            return it.object().status.phase == "Complete"
-                        }
-                    }
+                    //timeout(10) { // wiat for 10 minutes
+                    //    buildSelector.untilEach(1){
+                    //        return it.object().status.phase == "Complete"
+                    //    }
+                    //}
                     
                     // TBD: Tag the image using the devTag.
                     openshift.tag("${devProject}/tasks:latest", "${devProject}/tasks:${devTag}")
