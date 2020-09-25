@@ -106,13 +106,13 @@ pipeline {
                     // "--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war"
                     def bc = openshift.selector("bc", "tasks")
                     
-                    def buildSelector = bc.startBuild("--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war")
-                    buildSelector.logs("-f")
+                    def buildSelector = bc.startBuild("--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war", "--wait")
+                    buildSelector.logs()
                    
-                    if ( buildSelector.status.phase != "Complete" ) {
-                        currentBuild.result = 'ABORTED'
-			error('Stopping build due to error')
-                    } 
+                    #if ( buildSelector.status.phase != "Complete" ) {
+                    #    currentBuild.result = 'ABORTED'
+		    #	error('Stopping build due to error')
+                    #} 
                     //timeout(10) { // wiat for 10 minutes
                     //    buildSelector.untilEach(1){
                     //        return it.object().status.phase == "Complete"
