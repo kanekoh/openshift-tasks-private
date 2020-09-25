@@ -143,9 +143,11 @@ pipeline {
                     openshift.create("cm", "tasks-config",
                         '--from-file="./configuration/application-users.properties"',
                         '--from-file="./configuration/application-roles.properties"')
-                    openshift.selector("dc", "tasks").rollout().latest()
 
-                    waitUntilReady("tasks")
+                    def dc = openshift.selector("dc", "tasks")
+                    dc.rollout().latest()
+                    dc.rollout().status()
+
                 }
             }
         }
@@ -241,10 +243,10 @@ pipeline {
                     openshift.create("cm", "${destApp}-config",
                         '--from-file="./configuration/application-users.properties"',
                         '--from-file="./configuration/application-roles.properties"')
-                    openshift.selector("dc", "${destApp}").rollout().latest()
-                    
-                    waitUntilReady("${destApp}")
 
+                    def dc = openshift.selector("dc", "${destApp}")
+                    dc.rollout().latest()
+                    dc.rollout().status()
                 }
             }
         }
