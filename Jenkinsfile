@@ -106,7 +106,8 @@ pipeline {
                     // "--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war"
                     def bc = openshift.selector("bc", "tasks")
                     
-                    def buildSelector = bc.startBuild("--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war", "--wait", "--follow")
+                    def buildSelector = bc.startBuild("--from-file=http://nexus.${prefix}-nexus.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/${prodTag}/tasks-${prodTag}.war", "--wait")
+                    buildSelector.logs()
                     
                     //timeout(10) { // wiat for 10 minutes
                     //    buildSelector.untilEach(1){
