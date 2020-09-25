@@ -275,15 +275,3 @@ pipeline {
   }
 }
 
-def waitUntilReady(dcname) {
-    sleep 5
-    def dc = openshift.selector("dc", "${dcname}").object()
-    def dc_version = dc.status.latestVersion
-    def rc = openshift.selector("rc", "${dcname}-${dc_version}").object()
-
-    echo "Waiting for ReplicationController ${dcname}-${dc_version} to be ready"
-    while (rc.spec.replicas != rc.status.readyReplicas) {
-      sleep 5
-      rc = openshift.selector("rc", "${dcname}-${dc_version}").object()
-    }
-}
